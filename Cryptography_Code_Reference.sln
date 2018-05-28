@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27703.2018
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lib", "Lib\Lib.csproj", "{34341A2F-147C-426A-ADFF-18FB7B9BBC55}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DirectoryEncryptor", "DirectoryEncryptor\DirectoryEncryptor.csproj", "{55E245F9-B419-4043-8AA3-754A8CA9ACD6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{34341A2F-147C-426A-ADFF-18FB7B9BBC55}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{34341A2F-147C-426A-ADFF-18FB7B9BBC55}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{34341A2F-147C-426A-ADFF-18FB7B9BBC55}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{34341A2F-147C-426A-ADFF-18FB7B9BBC55}.Release|Any CPU.Build.0 = Release|Any CPU
+		{55E245F9-B419-4043-8AA3-754A8CA9ACD6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{55E245F9-B419-4043-8AA3-754A8CA9ACD6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{55E245F9-B419-4043-8AA3-754A8CA9ACD6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{55E245F9-B419-4043-8AA3-754A8CA9ACD6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6E82A87D-BB2F-47B7-B425-25FC93A659E0}
+	EndGlobalSection
+EndGlobal
