@@ -343,6 +343,7 @@ namespace DirectoryEncryptor
             {
                 // Create the crypto objects
                 rijndael = new RijndaelManaged();
+                Console.WriteLine($"Rijndael block size is {rijndael.BlockSize} bits.");
                 rijndael.Key = this._Key;
                 rijndael.IV = this._IV;
                 if (transformType == TransformType.ENCRYPT)
