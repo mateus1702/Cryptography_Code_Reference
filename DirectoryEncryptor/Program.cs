@@ -6,6 +6,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using static DirectoryEncryptor.FileEncryptor;
 
 namespace DirectoryEncryptor
 {
@@ -23,20 +24,38 @@ namespace DirectoryEncryptor
 
         static void Main(string[] args)
         {
-            Console.WriteLine("Current directory");
+            Console.WriteLine("Current directory.");
             Console.WriteLine(Environment.CurrentDirectory);
 
             Console.WriteLine("Type in the folder name:");
             FolderName = Console.ReadLine();
             Console.WriteLine("Type in the password:");
-            Password = ReadPassword('*');
+            Password = ReadPassword('#');
 
-            var folder = @"C:\Users\Mateus\Documents\" + FolderName;
+            var folder = Path.Combine(Environment.CurrentDirectory, FolderName);
 
-            if (Directory.Exists(folder))
-                Encrypt(folder);
-            else
-                Decrypt(folder);
+            try
+            {
+                if (Directory.Exists(folder))
+                    Encrypt(folder);
+                else
+                    Decrypt(folder);
+            }
+            catch (FileEncryptorException ex)
+            {
+                Console.WriteLine("Error on encryption.");
+                Console.WriteLine(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Unknown error.");
+                Console.WriteLine(ex.Message);
+            }
+
+
+            Console.WriteLine("");
+            Console.WriteLine("Finished");
+            Console.ReadLine();
         }
 
         private static void Encrypt(string folderPath)
@@ -45,16 +64,15 @@ namespace DirectoryEncryptor
             if (File.Exists(zipFilePath))
                 File.Delete(zipFilePath);
 
-            ZipFile.CreateFromDirectory(folderPath, zipFilePath);
+            Console.WriteLine("Zipping the folder...");
+            ZipFile.CreateFromDirectory(folderPath, zipFilePath, CompressionLevel.NoCompression, false);
 
-            var crypt = new MyEncryptor(Password);
-
-            Console.WriteLine("Encryting..");
-
+            Console.WriteLine("Encrypting...");
+            var crypt = new FileEncryptor(Password);
             var encryptedFilePath = folderPath + ".crypted";
-
             crypt.Encrypt(zipFilePath, encryptedFilePath);
 
+            Console.WriteLine("Deleting zip file...");
             File.Delete(zipFilePath);
         }
 
@@ -63,14 +81,20 @@ namespace DirectoryEncryptor
             var encryptedFilePath = folderPath + ".crypted";
             var zipFilePath = folderPath + ".zip";
 
-            var crypt = new MyEncryptor(Password);
+            if (!File.Exists(encryptedFilePath))
+            {
+                Console.WriteLine($"The file {encryptedFilePath} could not be found.");
+                return;
+            }
 
-            Console.WriteLine("Decryting..");
-
+            var crypt = new FileEncryptor(Password);
+            Console.WriteLine("Decrypting...");
             crypt.Decrypt(encryptedFilePath, zipFilePath);
 
+            Console.WriteLine("Unzipping the folder...");
             ZipFile.ExtractToDirectory(zipFilePath, folderPath);
 
+            Console.WriteLine("Deleting zip file...");
             File.Delete(zipFilePath);
         }
 
@@ -114,8 +138,15 @@ namespace DirectoryEncryptor
         }
     }
 
-    public class MyEncryptor
+    public class FileEncryptor
     {
+        public class FileEncryptorException : Exception
+        {
+            public FileEncryptorException(string Message) : base(Message)
+            {
+            }
+        }
+
         // Internal value of the phrase used to generate the secret key
         private string _Phrase = "";
         //contains input file path and name
@@ -145,7 +176,7 @@ namespace DirectoryEncryptor
         /// Constructor
         /// </summary>
         /// <param name="SecretPhrase">Secret phrase to generate key</param>
-        public MyEncryptor(string SecretPhrase)
+        public FileEncryptor(string SecretPhrase)
         {
             this.Phrase = SecretPhrase;
         }
@@ -175,7 +206,7 @@ namespace DirectoryEncryptor
             }
             catch (Exception ex)
             {
-                throw ex;
+                throw new FileEncryptorException(ex.Message);
             }
         }
 
@@ -205,7 +236,7 @@ namespace DirectoryEncryptor
             }
             catch (Exception ex)
             {
-                throw ex;
+                throw new FileEncryptorException(ex.Message);
             }
         }
 
@@ -230,7 +261,7 @@ namespace DirectoryEncryptor
             }
             catch (Exception ex)
             {
-                throw ex;
+                throw new FileEncryptorException(ex.Message);
             }
         }
 
@@ -255,7 +286,7 @@ namespace DirectoryEncryptor
             }
             catch (Exception ex)
             {
-                throw ex;
+                throw new FileEncryptorException(ex.Message);
             }
         }
 
@@ -285,11 +316,11 @@ namespace DirectoryEncryptor
             byte[] result = sha384.Hash;
 
             // Transfer the first 24 characters of the hashed value to the key
-            // and the remaining 8 characters to the initialization vector.
-            for (int loop = 0;
-                loop < 24; loop++) this._Key[loop] = result[loop];
-            for (int loop = 24;
-                loop < 40; loop++) this._IV[loop - 24] = result[loop];
+            // and the remaining 16 characters to the initialization vector.
+            for (int loop = 0; loop < 24; loop++)
+                this._Key[loop] = result[loop];
+            for (int loop = 24; loop < 40; loop++)
+                this._IV[loop - 24] = result[loop];
         }
 
         /*****************************************************************
@@ -364,13 +395,20 @@ namespace DirectoryEncryptor
                     } while (bytesRead != 0);
 
                     cryptoStream.FlushFinalBlock();
+
+                    fsIn.Close();
+                    fsOut.Close();
                 }
                 return null;
             }
             catch (CryptographicException)
             {
-                throw new CryptographicException(
+                throw new FileEncryptorException(
                     "Password is invalid. Please verify once again.");
+            }
+            catch(Exception ex)
+            {
+                throw new FileEncryptorException(ex.Message);
             }
             finally
             {
