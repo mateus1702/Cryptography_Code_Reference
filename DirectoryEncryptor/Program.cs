@@ -22,6 +22,16 @@ namespace DirectoryEncryptor
             get; set;
         }
 
+        private static char ScrambleAndDelete
+        {
+            get; set;
+        }
+
+        private static char DeleteEncryptedFile
+        {
+            get; set;
+        }
+
         static void Main(string[] args)
         {
             Console.WriteLine("Current directory.");
@@ -32,14 +42,34 @@ namespace DirectoryEncryptor
             Console.WriteLine("Type in the password:");
             Password = ReadPassword('#');
 
-            var folder = Path.Combine(Environment.CurrentDirectory, FolderName);
+            var folderPath = Path.Combine(Environment.CurrentDirectory, FolderName);
 
             try
             {
-                if (Directory.Exists(folder))
-                    Encrypt(folder);
+                if (Directory.Exists(folderPath))
+                {
+                    Encrypt(folderPath);
+                    Console.WriteLine("Scramble files and delete directory ? (Y for yes)");
+                    ScrambleAndDelete = Console.ReadKey().KeyChar;
+                    Console.WriteLine();
+                    if (ScrambleAndDelete == 'Y' || ScrambleAndDelete == 'y')
+                    {
+                        ScrambleDirectoryFiles(folderPath);
+                        DeleteFolder(folderPath);
+                    }
+                }
                 else
-                    Decrypt(folder);
+                {
+                    Decrypt(folderPath);
+                    Console.WriteLine("Delete encrypted file ? (Y for yes)");
+                    DeleteEncryptedFile = Console.ReadKey().KeyChar;
+                    if (DeleteEncryptedFile == 'Y' || DeleteEncryptedFile == 'y')
+                    {
+                        var encryptedFilePath = folderPath + ".crypted";
+                        File.Delete(encryptedFilePath);
+                    }
+                }
+                    
             }
             catch (FileEncryptorException ex)
             {
@@ -96,6 +126,70 @@ namespace DirectoryEncryptor
 
             Console.WriteLine("Deleting zip file...");
             File.Delete(zipFilePath);
+        }
+
+        public static void ScrambleDirectoryFiles(string diretoryPath)
+        {
+            Console.WriteLine("Scrambling files...");
+            foreach (var filePath in Directory.GetFiles(diretoryPath))
+            {
+                FileInfo fileInfo = new FileInfo(filePath);
+
+                FileStream fs = File.OpenWrite(filePath);
+
+                for (int i = 0; i < 4; i++)
+                {
+                    List<long> positions = getFilePositions(fileInfo.Length);
+
+                    Random random = new Random((int)DateTime.Now.Ticks);
+
+                    foreach (var position in positions)
+                    {
+                        byte randomByte = (byte)random.Next(byte.MaxValue);
+
+                        fs.Seek(position, SeekOrigin.Begin);
+                        fs.WriteByte(randomByte);
+                    }
+                }
+
+                fs.Close();
+            }
+        }
+
+        private static List<long> getFilePositions(long length)
+        {
+            List<long> positions = new List<long>();
+
+            Random random = new Random((int)DateTime.Now.Ticks);
+
+            for (int i = 0; i < (Math.Sqrt(length)); i++)
+            {
+                long nextPosition = LongRandom(0, length, random);
+
+                positions.Add(nextPosition);
+            }
+
+            return positions;
+        }
+
+        private static long LongRandom(long min, long max, Random rand)
+        {
+            byte[] buf = new byte[8];
+            rand.NextBytes(buf);
+            long longRand = BitConverter.ToInt64(buf, 0);
+
+            return (Math.Abs(longRand % (max - min)) + min);
+        }
+
+        public static void DeleteFolder(string folderPath)
+        {
+            Console.WriteLine("Deleting folder...");
+            foreach (var filePath in Directory.GetFiles(folderPath))
+            {
+                File.Delete(filePath);
+            }
+
+            Directory.Delete(folderPath);
         }
 
         public static string ReadPassword(char mask)
@@ -407,7 +501,7 @@ namespace DirectoryEncryptor
                 throw new FileEncryptorException(
                     "Password is invalid. Please verify once again.");
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 throw new FileEncryptorException(ex.Message);
             }
