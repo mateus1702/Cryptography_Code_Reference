@@ -69,7 +69,7 @@ namespace DirectoryEncryptor
                         File.Delete(encryptedFilePath);
                     }
                 }
-                    
+
             }
             catch (FileEncryptorException ex)
             {
@@ -184,12 +184,8 @@ namespace DirectoryEncryptor
         public static void DeleteFolder(string folderPath)
         {
             Console.WriteLine("Deleting folder...");
-            foreach (var filePath in Directory.GetFiles(folderPath))
-            {
-                File.Delete(filePath);
-            }
-
-            Directory.Delete(folderPath);
+           
+            Directory.Delete(folderPath, true);
         }
 
         public static string ReadPassword(char mask)
