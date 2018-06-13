@@ -37,12 +37,12 @@ namespace DirectoryEncryptor
             get; set;
         }
 
-        private static char ScrambleAndDelete
+        private static char Scramble
         {
             get; set;
         }
 
-        private static char DeleteEncryptedFile
+        private static char Delete
         {
             get; set;
         }
@@ -79,12 +79,19 @@ namespace DirectoryEncryptor
                         }
 
                         Encrypt(folderPath);
-                        Console.WriteLine("Scramble files and delete directory ? (Y for yes)");
-                        ScrambleAndDelete = Console.ReadKey().KeyChar;
+                        Console.WriteLine("Scramble files ? (Y for yes)");
+                        Scramble = Console.ReadKey().KeyChar;
                         Console.WriteLine();
-                        if (ScrambleAndDelete == 'Y' || ScrambleAndDelete == 'y')
+                        if (Scramble == 'Y' || Scramble == 'y')
                         {
                             ScrambleDirectoryFiles(folderPath);
+                        }
+
+                        Console.WriteLine("Delete directory ? (Y for yes)");
+                        Delete = Console.ReadKey().KeyChar;
+                        Console.WriteLine();
+                        if (Delete == 'Y' || Delete == 'y')
+                        {
                             DeleteFolder(folderPath);
                         }
                     }
@@ -116,8 +123,8 @@ namespace DirectoryEncryptor
 
                         Decrypt(fileName);
                         Console.WriteLine("Delete encrypted file ? (Y for yes)");
-                        DeleteEncryptedFile = Console.ReadKey().KeyChar;
-                        if (DeleteEncryptedFile == 'Y' || DeleteEncryptedFile == 'y')
+                        Delete = Console.ReadKey().KeyChar;
+                        if (Delete == 'Y' || Delete == 'y')
                         {
                             File.Delete(fileName);
                         }
@@ -492,6 +499,7 @@ namespace DirectoryEncryptor
             {
                 // Create the crypto objects
                 rijndael = new RijndaelManaged();
+
                 Console.WriteLine($"Rijndael block size is {rijndael.BlockSize} bits.");
                 rijndael.Key = this._Key;
                 rijndael.IV = this._IV;
