@@ -12,12 +12,27 @@ namespace DirectoryEncryptor
 {
     class Program
     {
+        private static char EncryptOrDecrypt
+        {
+            get; set;
+        }
+
         private static string Password
         {
             get; set;
         }
 
+        private static string PasswordConfirmation
+        {
+            get; set;
+        }
+
         private static string FolderName
+        {
+            get; set;
+        }
+
+        private static string EncryptedFileName
         {
             get; set;
         }
@@ -37,39 +52,81 @@ namespace DirectoryEncryptor
             Console.WriteLine("Current directory.");
             Console.WriteLine(Environment.CurrentDirectory);
 
-            Console.WriteLine("Type in the folder name:");
-            FolderName = Console.ReadLine();
-            Console.WriteLine("Type in the password:");
-            Password = ReadPassword('#');
-
-            var folderPath = Path.Combine(Environment.CurrentDirectory, FolderName);
+            Console.WriteLine("Encrypt or decrypt? (E or D)");
+            EncryptOrDecrypt = Console.ReadKey().KeyChar;
+            Console.WriteLine();
 
             try
             {
-                if (Directory.Exists(folderPath))
+                if (EncryptOrDecrypt == 'e' || EncryptOrDecrypt == 'E')
                 {
-                    Encrypt(folderPath);
-                    Console.WriteLine("Scramble files and delete directory ? (Y for yes)");
-                    ScrambleAndDelete = Console.ReadKey().KeyChar;
-                    Console.WriteLine();
-                    if (ScrambleAndDelete == 'Y' || ScrambleAndDelete == 'y')
-                    {
-                        ScrambleDirectoryFiles(folderPath);
-                        DeleteFolder(folderPath);
-                    }
-                }
-                else
-                {
-                    Decrypt(folderPath);
-                    Console.WriteLine("Delete encrypted file ? (Y for yes)");
-                    DeleteEncryptedFile = Console.ReadKey().KeyChar;
-                    if (DeleteEncryptedFile == 'Y' || DeleteEncryptedFile == 'y')
-                    {
-                        var encryptedFilePath = folderPath + ".crypted";
-                        File.Delete(encryptedFilePath);
-                    }
-                }
+                    Console.WriteLine("Type in the folder name:");
+                    FolderName = Console.ReadLine();
+                    var folderPath = Path.Combine(Environment.CurrentDirectory, FolderName);
 
+                    if (Directory.Exists(folderPath))
+                    {
+                        var firstAttempt = true;
+                        while (firstAttempt || Password != PasswordConfirmation)
+                        {
+                            firstAttempt = false;
+                            Console.WriteLine("Type in the password:");
+                            Password = ReadPassword('#');
+                            Console.WriteLine("Type in the password confirmation:");
+                            PasswordConfirmation = ReadPassword('#');
+                            if (Password != PasswordConfirmation)
+                                Console.WriteLine("Password confirmation doesn't match.");
+                        }
+
+                        Encrypt(folderPath);
+                        Console.WriteLine("Scramble files and delete directory ? (Y for yes)");
+                        ScrambleAndDelete = Console.ReadKey().KeyChar;
+                        Console.WriteLine();
+                        if (ScrambleAndDelete == 'Y' || ScrambleAndDelete == 'y')
+                        {
+                            ScrambleDirectoryFiles(folderPath);
+                            DeleteFolder(folderPath);
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Directory doesn't exists.");
+                    }
+                }
+                else if (EncryptOrDecrypt == 'd' || EncryptOrDecrypt == 'D')
+                {
+                    Console.WriteLine("Type in the the encrypted file name:");
+                    EncryptedFileName = Console.ReadLine();
+
+                    var fileName = Path.Combine(Environment.CurrentDirectory, EncryptedFileName);
+
+                    if (File.Exists(fileName))
+                    {
+                        var firstAttempt = true;
+                        while (firstAttempt || Password != PasswordConfirmation)
+                        {
+                            firstAttempt = false;
+                            Console.WriteLine("Type in the password:");
+                            Password = ReadPassword('#');
+                            Console.WriteLine("Type in the password confirmation:");
+                            PasswordConfirmation = ReadPassword('#');
+                            if (Password != PasswordConfirmation)
+                                Console.WriteLine("Password confirmation doesn't match.");
+                        }
+
+                        Decrypt(fileName);
+                        Console.WriteLine("Delete encrypted file ? (Y for yes)");
+                        DeleteEncryptedFile = Console.ReadKey().KeyChar;
+                        if (DeleteEncryptedFile == 'Y' || DeleteEncryptedFile == 'y')
+                        {
+                            File.Delete(fileName);
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("File doesn't exists.");
+                    }
+                }
             }
             catch (FileEncryptorException ex)
             {
@@ -99,30 +156,32 @@ namespace DirectoryEncryptor
 
             Console.WriteLine("Encrypting...");
             var crypt = new FileEncryptor(Password);
-            var encryptedFilePath = folderPath + ".crypted";
+            var encryptedFilePath = folderPath + ".cy";
             crypt.Encrypt(zipFilePath, encryptedFilePath);
 
             Console.WriteLine("Deleting zip file...");
             File.Delete(zipFilePath);
         }
 
-        private static void Decrypt(string folderPath)
+        private static void Decrypt(string encryptedFileName)
         {
-            var encryptedFilePath = folderPath + ".crypted";
-            var zipFilePath = folderPath + ".zip";
+            var directory = Path.GetDirectoryName(encryptedFileName);
+            var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(encryptedFileName);
 
-            if (!File.Exists(encryptedFilePath))
+            var zipFilePath = Path.Combine(directory, fileNameWithoutExtension + ".zip");
+
+            if (!File.Exists(encryptedFileName))
             {
-                Console.WriteLine($"The file {encryptedFilePath} could not be found.");
+                Console.WriteLine($"The file {encryptedFileName} could not be found.");
                 return;
             }
 
             var crypt = new FileEncryptor(Password);
             Console.WriteLine("Decrypting...");
-            crypt.Decrypt(encryptedFilePath, zipFilePath);
+            crypt.Decrypt(encryptedFileName, zipFilePath);
 
             Console.WriteLine("Unzipping the folder...");
-            ZipFile.ExtractToDirectory(zipFilePath, folderPath);
+            ZipFile.ExtractToDirectory(zipFilePath, Path.Combine(directory, fileNameWithoutExtension));
 
             Console.WriteLine("Deleting zip file...");
             File.Delete(zipFilePath);
@@ -184,7 +243,7 @@ namespace DirectoryEncryptor
         public static void DeleteFolder(string folderPath)
         {
             Console.WriteLine("Deleting folder...");
-           
+
             Directory.Delete(folderPath, true);
         }
 
