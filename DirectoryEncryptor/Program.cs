@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DirectoryEncryptor.Libs;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
@@ -84,6 +85,7 @@ namespace DirectoryEncryptor
                         Console.WriteLine();
                         if (Scramble == 'Y' || Scramble == 'y')
                         {
+                            Console.WriteLine("Scrambling files...");
                             ScrambleDirectoryFiles(folderPath);
                         }
 
@@ -92,6 +94,7 @@ namespace DirectoryEncryptor
                         Console.WriteLine();
                         if (Delete == 'Y' || Delete == 'y')
                         {
+                            Console.WriteLine("Deleting folder...");
                             DeleteFolder(folderPath);
                         }
                     }
@@ -194,41 +197,97 @@ namespace DirectoryEncryptor
             File.Delete(zipFilePath);
         }
 
-        public static void ScrambleDirectoryFiles(string diretoryPath)
+        public static void ScrambleDirectoryFiles(string directoryPath)
         {
-            Console.WriteLine("Scrambling files...");
-            foreach (var filePath in Directory.GetFiles(diretoryPath))
+            foreach (var innerDirectory in Directory.GetDirectories(directoryPath))
             {
-                FileInfo fileInfo = new FileInfo(filePath);
+                ScrambleDirectoryFiles(innerDirectory);
+            }
 
-                FileStream fs = File.OpenWrite(filePath);
-
-                for (int i = 0; i < 4; i++)
-                {
-                    List<long> positions = getFilePositions(fileInfo.Length);
-
-                    Random random = new Random((int)DateTime.Now.Ticks);
-
-                    foreach (var position in positions)
-                    {
-                        byte randomByte = (byte)random.Next(byte.MaxValue);
-
-                        fs.Seek(position, SeekOrigin.Begin);
-                        fs.WriteByte(randomByte);
-                    }
-                }
-
-                fs.Close();
+            foreach (var filePath in Directory.GetFiles(directoryPath))
+            {
+                ScrambleFile(filePath);
             }
         }
 
-        private static List<long> getFilePositions(long length)
+        public static void ScrambleFile(string filePath)
+        {
+            FileInfo fileInfo = new FileInfo(filePath);
+
+            List<long> positions;
+
+            if (IsTextFile(filePath))
+                positions = getFilePositions(fileInfo.Length, ScrambleLevel.alot);
+            else
+                positions = getFilePositions(fileInfo.Length, ScrambleLevel.little);
+
+            Random random = new Random((int)DateTime.Now.Ticks);
+
+            FileStream fs = File.OpenWrite(filePath);
+
+            foreach (var position in positions)
+            {
+                byte randomByte = (byte)random.Next(byte.MaxValue);
+
+                fs.Seek(position, SeekOrigin.Begin);
+                fs.WriteByte(randomByte);
+            }
+
+            fs.Close();
+        }
+
+        private static bool IsTextFile(string filePath)
+        {
+            var bufferSize = 10000;
+            var buffer = new byte[bufferSize];
+
+            var fs = File.OpenRead(filePath);
+            fs.Read(buffer, 0, bufferSize);
+
+            fs.Flush();
+            fs.Close();
+
+            try
+            {
+                var encoding = TextFileEncodingDetector.DetectBOMBytes(buffer);
+
+                return encoding != null;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private enum ScrambleLevel
+        {
+            little,
+            medium,
+            alot
+        }
+
+        private static List<long> getFilePositions(long length, ScrambleLevel scrambleLevel)
         {
             List<long> positions = new List<long>();
 
             Random random = new Random((int)DateTime.Now.Ticks);
 
-            for (int i = 0; i < (Math.Sqrt(length)); i++)
+            long numberOfPositions = 0;
+
+            switch (scrambleLevel)
+            {
+                case ScrambleLevel.alot:
+                    numberOfPositions = length / 2;
+                    break;
+                case ScrambleLevel.medium:
+                    numberOfPositions = length / 8;
+                    break;
+                case ScrambleLevel.little:
+                    numberOfPositions = length / 512;
+                    break;
+            }
+
+            for (int i = 0; i < numberOfPositions; i++)
             {
                 long nextPosition = LongRandom(0, length, random);
 
@@ -249,8 +308,6 @@ namespace DirectoryEncryptor
 
         public static void DeleteFolder(string folderPath)
         {
-            Console.WriteLine("Deleting folder...");
-
             Directory.Delete(folderPath, true);
         }
 
